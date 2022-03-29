@@ -1,74 +1,81 @@
 from threading import Thread
 import serial
 import controls
-import gui
 import struct
+
+maxCoordinates = 100
 
 class Comms:
     def __init__(self, port: str, baud_rate: int):
         self.port = port
         self.baud_rate = baud_rate
-        ser = serial.Serial(self.port, self,baud_rate)
+        self.ser = serial.Serial(self.port, self,baud_rate)
         self.ser.close()
         self.ser.open()
 
     def send_value(self,value):
         #preq: -100<=value<=100
-        value = round(value*1.27)
-        if value<0:
-            value = 255+value
-        return value 
+        self.value = round(value*1.27)
+        if self.value<0:
+            self.value = 255+self.value
+        return self.value 
 
     def run(self):
         while True: 
-            packetControls = controls.Controls() #change later
-            #leftJoy_LR = packetControls.packet[0] #and repeat... will finalize once I know what values will come
-            leftJoy_UD = packetControl.packet[1]
-            rightJoy_LR = packetControls.packet[2]
-            #rightJoy_UD = packetControls.packet[3]
-            servoRotate = packetControls.packet[4]
-            servoGrab = packetControls.packet[5]
-            LB_up = packetControls.packets[6]
-            RB_down = packetControls.packet[7]
+            self.packetControls = self.packetControls.Controls() #modify later
+            #leftJoy_LR = packetControls.packet[0] #will finalize once I know what values will come
+            self.leftJoy_UD = self.packetControl.packet[1]
+            self.rightJoy_LR = self.packetControls.packet[2]
+            self.servoRotate = self.packetControls.packet[3]
+            self.servoGrab = self.packetControls.packet[4]
+            self.LB_up = self.packetControls.packets[5]
+            self.RB_down = self.packetControls.packet[6]
+            self.Y = self.packetControls.packet[7]
 
-        while True:
             #coordinate => [x,y]
-            if leftJoy_UD[1] > 0 
+            if (self.leftJoy_UD[1] > 0.5*maxCoordinates):
                 #joystick has been moved up; tell both thrusters to move forward 
-                value = self.send_value(leftJoy_UD)
-                packet_rightThruster = chr(1) + chr(6) + chr((self.value).encode("latin")) + chr(255)
+                self.value = self.send_self.value(self.leftJoy_UD)
+                self.convert_value = (self.value).encode("latin")
+                packet_rightThruster = chr(1) + chr(6) + chr(self.convert_value) + chr(255)
                 self.ser.write(packet_rightThruster)
-                packet_leftThruster = chr(1) + chr(7) + chr((self.value).encode("latin")) + chr(255)
+                packet_leftThruster = chr(1) + chr(7) + chr(self.convert_value) + chr(255)
                 self.ser.write(packet_leftThruster)
-            else:
-                if leftJoy_UD[1] < 0
-                    packet_rightThrus = chr(1) + chr(6) + chr((self.value).encode("latin")) + chr(255) 
-                    self.ser.write(packet_rightThrus)
-                    packet_leftThurs = chr(1) + chr(7) + chr((self.value).encode("latin")) + chr(255) 
-                    self.ser.write(packet_leftThurs)
+            elif (self.leftJoy_UD[1] < 0.5*maxCoordinates):
+                self.value = self.send_value(self.leftJoy_UD)
+                self.convert_value = (self.value).encode("latin")
+                packet_rightThrus = chr(1) + chr(6) + chr(self.convert_value) + chr(255) 
+                self.ser.write(packet_rightThrus)
+                packet_leftThurs = chr(1) + chr(7) + chr(self.convert_value) + chr(255) 
+                self.ser.write(packet_leftThurs)
             #have to specify to elimate packets being sent when joystick is at (0,0)
-            
 
             #coding left and right movement
-            if rightJoy_LR[0] > 0
-                #joystick has been moved to the right
-                value = self.send_value(leftJoy_UD)
-                packet_rightThruster = chr(1) + chr(6) + chr((self.value).encode("latin")) + chr(255)
-                self.ser.write(packet_rightThruster)
-                packet_leftThruster = chr(1) + chr(7) + chr((self.value).encode("latin")) + chr(255)
+            if (self.rightJoy_LR[0] > 0.5*maxCoordinates):
+                #joystick has been moved to the right - code left thruster to move
+                self.value_leftMot = self.send_value(self.rightJoy_LR)
+                self.convert_value_leftMot = (self.value_leftMot).encode("latin")
+                packet_leftThruster = chr(1) + chr(6) + chr(self.convert_value_leftMot) + chr(255)
                 self.ser.write(packet_leftThruster)
-            else: 
-                if rightJoy_LR[0] < 0
-                #joystick has been moved to the left
-                value = self.send_value(leftJoy_UD)
-                packet_rightThruster = chr(1) + chr(6) + chr((self.value).encode("latin")) + chr(255)
+                #right thruster going the other way
+                self.value_rightMot = self.send_value(-self.rightJoy_LR)
+                self.convert_value_rightMot = (self.value_rightMot).encode("latin")
+                packet_rightThruster = chr(1) + chr(7) + chr(self.convert_value_rightJoy_UD) + chr(255)
                 self.ser.write(packet_rightThruster)
-                packet_leftThruster = chr(1) + chr(7) + chr((self.value).encode("latin")) + chr(255)
+            elif (self.rightJoy_LR[0] < 0.5*maxCoordinates):
+                #joystick has been moved to the left - code right thruster to move
+                self.value_rightMot = self.send_value(self.rightJoy_LR)
+                self.convert_value_rightMot = (self.value_rightMot).encode("latin")
+                packet_rightThruster = chr(1) + chr(6) + chr(self.convert_value_rightMot) + chr(255)
+                self.ser.write(packet_rightThruster)
+                #left thruster goes the other way
+                self.value_leftMot = self.send_value(-self.rightJoy_LR)
+                self.convert_value_rightMot = (self.value_leftMot).encode("latin")
+                packet_leftThruster = chr(1) + chr(7) + chr(self.convert_value_rightMot) + chr(255)
                 self.ser.write(packet_leftThruster)
 
-
-            #previous code (reviewed and accepted - IGNORE)
             '''
+            #previous code (reviewed and accepted - IGNORE)
             while True:
                 #coding the thrusters forward and back (sendSystemsLes)
                 if leftJoy_UD < [43,43]:
@@ -87,47 +94,47 @@ class Comms:
                     self.ser.write(packet_rightJoy_stopped)
                 else:
                     packet_rightJoy = chr(1) + chr(6) + chr((self.value).encode("latin")) + chr(255) 
-                    self.ser.write(packet_rightJoy)
-                '''
+                    self.ser.write(packet_rightJoy) '''
 
-                #servo claw code - finalized with packet value. chr(11) tells systems to switch off the servo and chr(12) is an empty byte
-                if servoRotate == True:
-                    value = self.send_value(servoRotate)
-                    packet_servoRotate = chr(1) + chr(8) + chr(12) + chr(255)
-                    self.ser.write(packet_servoRotate)
-                else:
-                    packet_servoRotate_off = chr(1) + chr(8) + chr(11) + chr(255)
+                #servo claw code - finalized with packet value. 
+                #chr(11) tells systems to switch off the servo and chr(12) tells to switch on
+            if (self.servoRotate == True):
+                self.value = self.send_value(self.servoRotate)
+                packet_servoRotate = chr(1) + chr(8) + chr(12) + chr(255)
+                self.ser.write(packet_servoRotate)
+            else:
+                packet_servoRotate_off = chr(1) + chr(8) + chr(11) + chr(255)
+                self.ser.write(packet_servoRotate_off)
 
-                if servoGrab == True:
-                    value = self.send_value(servoGrab)
-                    packet_servoGrab = chr(1) + chr(9) + chr(12) + chr(255)
-                    self.ser.write(packet_servoGrab)
-                else:
-                    packet_servoGrab_off = chr(1) + chr(9) + chr(11) + chr(255)
+            if (self.servoGrab == True):
+                self.value = self.send_value(self.servoGrab)
+                packet_servoGrab = chr(1) + chr(9) + chr(12) + chr(255)
+                self.ser.write(packet_servoGrab)
+            else:
+                packet_servoGrab_off = chr(1) + chr(9) + chr(11) + chr(255)
+                self.ser.write(packet_servoGrab_off)
 
-                
-                #take data, convert it, and send to systems
-                #[-127,127]
-                
+            #4 up and down motors 
+            if (self.RB_up == True):
+                packet_RB_up = chr(1) + chr(13) + chr(127) + chr(255)
+                self.ser.write(packet_RB_up)
+            if (self.LB_up == True):
+                packet_LB_up = chr(1) + chr(13) + chr(254) + chr(255)
+                self.ser.write(packet_LB_up)
+            #systems will read chr(13) and chr(127) will turn all 4 up-down motors up and chr(254) will turn them all down.
 
-                #4 up and down motors 
-                if LB_up == True:
-                    packet_LB_up = chr(1) + chr(13) + chr(12) + chr(255)
-                else:
-                    if RB_up == True:
-                        packet_RB_up = chr(1) + chr(14) + chr(12) + chr(255)
-                #systems will read chr(13) and turn all 4 up-down motors up, and the chr(14) will turn them all down.
+            if (self.Y == True):
+                packet_killSwitch = chr(1) + chr(14) + chr(100) + chr(255)
+                self.ser.write(packet_killSwitch)
+            #second byte chr(14) means kill all operations, while chr(100) is just an empty byte
 
-                
+            #to recieve the gyroscope information from systems
+            packet_IMUdata = self.Serial.read(size=4)
+            #orien = []
+            #if defined earlier, orien.x and etc for object orien will work; self just defines/declares the unpacked variable
+            header, self.orien.x, self.orien.y, self.orien.z, self.gyro.x, self.gyro.y, self.gyro.z, self.accel.x, self.accel.y, self.accel.z = struct.unpack('ccfffffffff')  
 
-                #to recieve information from systems
-                packet_IMUdata = self.Serial.read(size=4)
-                header, orien_x, orien_y, orien_x, gyro.x, gyro.y, gyro.z, accel.x, accel.y, accel.z = struct.unpack('ccfffffffff')
-                
 
     def start_thread(self):
-        start_thread = Thread(target = self.run)  
+        start_thread = self.threading.Thread(target = self.run)  
         start_thread.start()
-    
-    #display_GUI = gui.GUI()
-
